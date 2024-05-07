@@ -4,19 +4,21 @@ import { type User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import {
   createContext,
-  type Dispatch,
-  type ReactNode,
-  type SetStateAction,
   useContext,
   useEffect,
   useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
 } from "react";
 import { createClient } from "~/utils/supabase/client";
 
 const AuthContext = createContext<{
+  isLoading: boolean;
   user: User | null;
   setRememberMe: Dispatch<SetStateAction<boolean>>;
 }>({
+  isLoading: true,
   user: null,
   setRememberMe: () => {
     return false;
@@ -28,65 +30,60 @@ type Props = {
 };
 
 export function AuthProvider({ children }: Props) {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [rememberMe, setRememberMe] = useState<boolean>(false);
   const router = useRouter();
 
   // Listen for token changes
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === "SIGNED_IN") {
-          setUser(session?.user ?? null);
-          // Optionally, store the token as a cookie here
-        } else if (event === "SIGNED_OUT") {
-          setUser(null);
-          // Optionally, remove the token from the cookie here
-          router.push("/auth/login"); // Redirect to login page after sign out
+    // Function to fetch user data
+    const fetchUser = async () => {
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error) {
+          throw error;
         }
-      },
-    );
+        console.log("user", data);
+        const userData = data?.user ?? null;
+        setUser(userData);
+        setIsLoading(false);
+      } catch (error: any) {
+        setUser(null);
+        setIsLoading(false);
+        // Optionally, remove the token from the cookie here
+        router.push("/auth/login"); // Redirect to login page after sign out
+        console.error("Error fetching user:", error.message);
+      }
+    };
 
-    fetchUser().catch(console.error);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(event, session);
+      if (event === "SIGNED_IN") {
+        setUser(session?.user ?? null);
+        setIsLoading(false);
+        // Optionally, store the token as a cookie here
+      } else if (event === "SIGNED_OUT") {
+        setUser(null);
+        setIsLoading(false);
+        // Optionally, remove the token from the cookie here
+        router.push("/auth/login"); // Redirect to login page after sign out
+      }
+    });
+
+    fetchUser();
 
     // Clean up function
     return () => {
-      authListener.subscription.unsubscribe(); // Unsubscribe from auth listener
+      subscription.unsubscribe(); // Unsubscribe from auth listener
     };
-  }, [supabase, router]); // Empty dependency array means this effect runs only once, on mount
-
-  // Force refresh the token every 10 minutes
-  useEffect(() => {
-    const handle = setInterval(
-      async () => {
-        await supabase.auth.refreshSession();
-      },
-      10 * 60 * 1000,
-    );
-
-    return () => clearInterval(handle);
-  }, []);
-
-  // Function to fetch user data
-  const fetchUser = async () => {
-    try {
-      const { data, error } = await supabase.auth.getUser();
-      if (error) {
-        throw error;
-      }
-      const userData = data?.user ?? null;
-      setUser(userData);
-    } catch (error: any) {
-      setUser(null);
-      // Optionally, remove the token from the cookie here
-      router.push("/auth/login"); // Redirect to login page after sign out
-      console.error("Error fetching user:", error.message);
-    }
-  };
+  }, []); // Empty dependency array means this effect runs only once, on mount
 
   return (
-    <AuthContext.Provider value={{ user, setRememberMe }}>
+    <AuthContext.Provider value={{ user, isLoading, setRememberMe }}>
       {children}
     </AuthContext.Provider>
   );

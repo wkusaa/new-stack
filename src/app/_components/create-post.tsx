@@ -7,10 +7,9 @@ import { useAuth } from "~/provider/AuthProvider";
 import { api } from "~/trpc/react";
 
 export function CreatePost() {
+  const { user, isLoading } = useAuth();
   const router = useRouter();
   const [name, setName] = useState("");
-
-  const { user } = useAuth();
 
   const createPost = api.post.create.useMutation({
     onSuccess: () => {
@@ -18,6 +17,8 @@ export function CreatePost() {
       setName("");
     },
   });
+
+  if (isLoading) return <p>Loading</p>;
 
   return (
     <form
