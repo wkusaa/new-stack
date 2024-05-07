@@ -1,11 +1,11 @@
 "use client";
 
-import { useAuth } from "~/provider/AuthProvider";
+import { api } from "~/trpc/react";
 
 export default function ClientPage() {
-  const { user, isLoading } = useAuth();
+  const { data: user } = api.user.getCurrentUser.useQuery();
 
-  if (isLoading) return <p>Loading</p>;
+  if (!user) return <p>Loading</p>;
 
-  return <div>{user?.email} time to mew</div>;
+  return <div>{user.email} time to mew</div>;
 }

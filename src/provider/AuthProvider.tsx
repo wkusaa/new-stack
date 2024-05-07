@@ -80,7 +80,7 @@ export function AuthProvider({ children }: Props) {
     return () => {
       subscription.unsubscribe(); // Unsubscribe from auth listener
     };
-  }, []); // Empty dependency array means this effect runs only once, on mount
+  }, [supabase]); // Empty dependency array means this effect runs only once, on mount
 
   return (
     <AuthContext.Provider value={{ user, isLoading, setRememberMe }}>
