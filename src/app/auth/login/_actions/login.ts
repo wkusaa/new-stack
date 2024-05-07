@@ -22,6 +22,6 @@ export async function login(formData: FormData) {
     redirect("/auth/error");
   }
 
-  revalidatePath("/", "layout");
+  revalidatePath("/");
   redirect("/");
 }

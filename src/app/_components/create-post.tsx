@@ -2,12 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "~/provider/AuthProvider";
 
 import { api } from "~/trpc/react";
 
 export function CreatePost() {
   const router = useRouter();
   const [name, setName] = useState("");
+
+  const { user } = useAuth();
 
   const createPost = api.post.create.useMutation({
     onSuccess: () => {
@@ -26,7 +29,7 @@ export function CreatePost() {
     >
       <input
         type="text"
-        placeholder="Title"
+        placeholder={`${user?.email ?? ""} keep yourself safe`}
         value={name}
         onChange={(e) => setName(e.target.value)}
         className="w-full rounded-full px-4 py-2 text-black"
